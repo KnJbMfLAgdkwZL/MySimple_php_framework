@@ -42,4 +42,49 @@ class ActiveRecord
         $result = $stm->fetchAll(PDO::FETCH_ASSOC);
         return $result;
     }
+
+    public function get_column_name_v1()
+    {
+        $param = [
+            ':tb' => get_class($this),
+            ':db' => $this->db_name
+        ];
+        $sql = 'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = :tb AND table_schema = :db';
+        $result = $this->execute($sql, $param);
+        foreach ($result as $k => &$v) {
+            $v = $v['COLUMN_NAME'];
+        }
+        return $result;
+    }
+
+    public function get_column_name_v2()
+    {
+        $tb = get_class($this);
+        $sql = "SHOW COLUMNS FROM {$tb}";
+        $result = $this->execute($sql);
+        foreach ($result as $k => &$v) {
+            $v = $v['Field'];
+        }
+        return $result;
+    }
+
+    public function get_column_name_v3()
+    {
+        $tb = get_class($this);
+        $sql = "DESCRIBE {$tb}";
+        $result = $this->execute($sql);
+        foreach ($result as $k => &$v) {
+            $v = $v['Field'];
+        }
+        return $result;
+    }
+
+    public function select()
+    {
+        $tb = get_class($this);
+        $sql = "SELECT * FROM {$tb}";
+        $result = $this->execute($sql);
+        return $result;
+    }
+
 }
