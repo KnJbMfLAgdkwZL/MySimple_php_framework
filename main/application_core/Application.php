@@ -4,37 +4,34 @@ class Application
 {
     public function run()
     {
-        $check = new Check();
-
-        if (!$check->exists($_GET)) {
-            //Loading the default page
+        //Loading the default page
+        if (empty($_GET)) {
             $siteController = new SiteController();
             $siteController->index();
             return;
         }
 
         $arr = $this->getRequest();
-        if ($check->exists($arr)) {
+        if (isset($arr)) {
             $classController = '';
             $method = '';
 
-            if ($check->exists($arr['controller'])) {
+            if (isset($arr['controller'])) {
                 $classController = $arr['controller'];
             }
-            if ($check->exists($arr['method'])) {
+            if (isset($arr['method'])) {
                 $method = $arr['method'];
             }
 
             $classController = $this->findController($classController);
-            if ($check->exists($classController)) {
-                $found = $this->findMethod($classController, $method);
-                if ($check->exists($found)) {
-                    $run = "
-						\$classController = new {$classController}();
-						if (in_array('{$method}', \$classController->allowed)) {
-							\$classController->{$method}();
-						}";
-                    eval($run);
+            if ($classController) {
+                if (method_exists($classController, $method)) {
+
+                    $classController = new $classController();
+                    if (in_array($method, $classController->allowed)) {
+                        $classController->$method();
+                    }
+
                     return;
                 }
             }
@@ -48,14 +45,14 @@ class Application
 
     private function getRequest()
     {
-        $check = new Check();
-        if ($check->exists($_GET)) {
-            $get = $check->secureVar($_GET);
-            if ($check->exists($get['r'])) {
+
+        if (!empty($_GET)) {
+            $get = $this->secureVar($_GET);
+            if (isset($get['r'])) {
                 $r = $get['r'];
                 $r = mb_split('/', $r);
-                if ($check->exists($r[0])) {
-                    if ($check->exists($r[1])) {
+                if (isset($r[0])) {
+                    if (isset($r[1])) {
                         return ['controller' => $r[0], 'method' => $r[1]];
                     }
                 }
@@ -78,11 +75,6 @@ class Application
         return false;
     }
 
-    private function findMethod($controller, $method)
-    {
-        return method_exists($controller, $method);
-    }
-
     private function findFile($path, $name)
     {
         $name = mb_strtolower($name);
@@ -95,4 +87,24 @@ class Application
         }
         return false;
     }
+
+    public function secureVar($var)
+    {
+        if (is_array($var)) {
+            foreach ($var as $k => &$v) {
+                $v = strip_tags($v);
+                $v = htmlspecialchars($v, ENT_QUOTES);
+                $v = stripslashes($v);
+                $v = trim($v);
+            }
+        } else {
+            $v = &$var;
+            $v = strip_tags($v);
+            $v = htmlspecialchars($v, ENT_QUOTES);
+            $v = stripslashes($v);
+            $v = trim($v);
+        }
+        return $var;
+    }
+
 }

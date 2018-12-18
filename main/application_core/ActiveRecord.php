@@ -19,8 +19,7 @@ class ActiveRecord
 
     private function connect()
     {
-        $check = new Check();
-        if (!$check->exists(self::$DBH)) {
+        if (empty(self::$DBH)) {
             $connection = 'mysql:host=' . $this->host . ';dbname=' . $this->db_name . ';charset=utf8';
             self::$DBH = new PDO($connection, $this->username, $this->password);
         }
@@ -28,8 +27,7 @@ class ActiveRecord
 
     public static function disconnect()
     {
-        $check = new Check();
-        if ($check->exists(self::$DBH)) {
+        if (!empty(self::$DBH)) {
             self::$DBH = null;
         }
     }
