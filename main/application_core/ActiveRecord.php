@@ -77,11 +77,82 @@ class ActiveRecord
         return $result;
     }
 
-    public function select()
+    private function get_condition_string($condition)
     {
+        $where = '';
+        if (count($condition)) {
+            $where = 'WHERE ' . implode(' AND ', array_map(
+                    function ($v, $k) {
+                        return sprintf("%s = :%s", $k, $k);
+                    },
+                    $condition,
+                    array_keys($condition)
+                ));
+        }
+        return $where;
+    }
+
+    public function select($condition = [])
+    {
+        $where = $this->get_condition_string($condition);
         $tb = get_class($this);
-        $sql = "SELECT * FROM {$tb}";
-        $result = $this->execute($sql);
+        $sql = "SELECT * FROM {$tb} {$where}";
+        $result = $this->execute($sql, $condition);
+        return $result;
+    }
+
+    public function delete($condition = [])
+    {
+        if (!count($condition)) {
+            return false;
+        }
+        $where = $this->get_condition_string($condition);
+        $tb = get_class($this);
+        $sql = "DELETE FROM {$tb} {$where}";
+        $result = $this->execute($sql, $condition);
+        return $result;
+    }
+
+    public function insert($param = [])
+    {
+        if (!count($param)) {
+            return false;
+        }
+        $keys = implode(', ', array_keys($param));
+        $values = implode(', ', array_map(
+            function ($k) {
+                return sprintf(":%s", $k);
+            },
+            array_keys($param)
+        ));
+        $tb = get_class($this);
+        $sql = "INSERT INTO {$tb} ({$keys}) VALUES ($values)";
+        $this->execute($sql, $param);
+        $result = self::$DBH->lastInsertId();
+        return $result;
+    }
+
+    public function update($param = [], $condition = [])
+    {
+        if (!count($param)) {
+            return false;
+        }
+        $_param = [];
+        foreach ($param as $k => $v)
+            $_param[":set_{$k}"] = $v;
+        foreach ($condition as $k => $v)
+            $_param[$k] = $v;
+        $set = implode(', ', array_map(
+            function ($v, $k) {
+                return sprintf("%s = :set_%s", $k, $k);
+            },
+            $param,
+            array_keys($param)
+        ));
+        $where = $this->get_condition_string($condition);
+        $tb = get_class($this);
+        $sql = "UPDATE {$tb} SET {$set} {$where}";
+        $result = $this->execute($sql, $_param);
         return $result;
     }
 
